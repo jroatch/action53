@@ -11,9 +11,11 @@ decoding_table = [
     # 0x00 and 0x0a are for termination and newline respectively
     *range(16),
     # unassigned
-    *[0xFFFE]*4,
-    # copyright, L with stroke, z with dot, e with tail
-    0x00A9, 0x0141, 0x017C, 0x0119,
+    *[0xFFFE]*3,
+    # copyright
+    0x00A9,
+    # L with stroke, l with stroke, z with dot, e with tail
+    0x0141, 0x0142, 0x017C, 0x0119,
     # A button, B button, d-pad, bird
     0x24B6, 0x24B7, 0x271C, 0x1F426,
     # up arrow, down arrow, left arrow, right arrow

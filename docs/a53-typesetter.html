@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8"/>
+<title>Action 53 Typesetter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+canvas, textarea {
+	margin: 0;
+	border: 1px solid #000;
+	vertical-align: bottom;
+}
+canvas {
+	width: 288px;
+	height: 352px;
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
+</style>
+<script type="text/javascript">
+window.addEventListener("load", function () {
+	var textbox = document.getElementById('input_text');
+	var canvas = document.getElementById('c');
+	var ctx = canvas.getContext('2d');
+	var font = new Image();
+	font.src = "data:image/png;base64," +
+"iVBORw0KGgoAAAANSUhEUgAAAIAAAABAAQMAAADoGO08AAAABlBMVEX///8AAABVwtN+AAAAAXRS" +
+"TlMAQObYZgAAAeBJREFUOE/NUaFuVVEQHFl5JHJl5ZNXrqioqDiCD1iJQBxZQciIhqwc2VSQF9RN" +
+"VcVTqKcIoiFVT58/4MirGsTtIwVKsEzW7GR2Z7MD/FewX7rJHZim6YM98WfuI95enH5vtlI3LYoO" +
+"h8f3s3kBgE/7fYwv3z4/2rwsAHDjTh4Oj++srYqzSxvt9cXpZE87JgCvpmkaeBncVntwGs0AFIDb" +
+"pT1s6T4fCdStOWhtwYABxBIxgzYbgACAWl3gaukAgX73Bu4AQQIA/A4wAmv9jrCITYsRsbZQqFSy" +
+"SGQZFGQl1LuFgEAUyKKMIlMDiGKQUUVyFSBGAGEjSoRHkAW054bEi5hstLEsLenJq2w4q5lJZtLF" +
+"+6+JmzqYY3Chb3k/J26XZJLXSe/czYnbfDayu058zNHGwsuk53KVDf6vMzDaaEvmVebS2Q3IzLTM" +
+"Xa0npFUgM8Myd2aFbgmMHMWy7syCYQCYSst6Xo1rumzZrNl52sJiAHDy07CXjuXPOwiiYAPS1xw9" +
+"erTw1gHxoQdQJKlL9C1nCWiihkv0/UpIEr09U/RozYvo8llxNIu//wPA8Wsb7ivQW29dSmk4bQtI" +
+"pEuzVJwGQGK4NMcaP9AbiyuqjKuChd1aVPk4Ek9WxIZ74AenJA613jbHEAAAAABJRU5ErkJggg==";
+	var charmap = {
+		'\u00A9': 0x13,
+		'\u0141': 0x14,
+		'\u0142': 0x15,
+		'\u017C': 0x16,
+		'\u0119': 0x17,
+		'\u24B6': 0x18,
+		'\u24B7': 0x19,
+		'\u271C': 0x1a,
+		'\ud83d\udc26': 0x1b,  //'\u{1F426}': 0x1b,
+		'\u2191': 0x1c,
+		'\u2193': 0x1d,
+		'\u2190': 0x1e,
+		'\u2192': 0x1f,
+		'\u2423': 0x7f,
+	};
+	for (var i = 0; i < 0x7f; i++) {
+		charmap[String.fromCharCode(i)] = i;
+	}
+	var font_widths = [
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 8, 6, 4, 5, 5, 8, 8, 8, 8, 6, 6, 6, 6,
+		3, 2, 4, 6, 5, 5, 6, 2, 4, 4, 6, 6, 2, 5, 2, 5,
+		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 2, 5, 5, 5, 5,
+		8, 6, 6, 6, 6, 6, 6, 6, 6, 2, 3, 6, 6, 7, 6, 6,
+		6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 4, 5, 4, 6, 5,
+		3, 5, 5, 5, 5, 5, 4, 5, 5, 2, 3, 5, 3, 6, 5, 5,
+		5, 5, 4, 5, 4, 5, 5, 6, 5, 5, 5, 5, 2, 5, 5, 1
+	];
+	function render() {
+		var text = textbox.value;
+		var text_length = text.length;
+		var c;
+		var char;
+		var x = 0;
+		var y = 0;
+		ctx.fillStyle = "#bbb";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.save();
+		ctx.translate(8, 8);
+		ctx.fillStyle = "#000";
+		ctx.beginPath();
+		ctx.moveTo(128, -8);
+		ctx.arcTo(128, 168, 120, 168, 8);
+		ctx.lineTo(136, 168);
+		ctx.lineTo(136, -8);
+		ctx.closePath();
+		ctx.fill();
+		ctx.fillStyle = "#ff0000";
+		for (var i = 0; i < text_length; i++) {
+			c = text.charCodeAt(i);
+			if ((0xd800 <= c) && (c < 0xe000) && (i+1 < text_length)) {
+				char = text[i] + text[i+1];
+				i++;
+			} else {
+				char = text[i];
+			}
+			c = charmap[char];
+			if (c != null) {
+				if (x > 128) {
+					ctx.fillRect(128, y, 4, 8);
+				} else if (y < 160) {
+					ctx.drawImage(font, (c%16)*8, ((c/16)|0)*8, 8, 8, x, y, 8, 8);
+				}
+				x += font_widths[c];
+				if (c == 0x0a) {
+					y += 8;
+					x = 0;
+				}
+			}
+			if (y*128 + x > 160*128) {
+				ctx.fillRect(-8, 160, 144, 8);
+			}
+		}
+		ctx.restore();
+	};
+	textbox.addEventListener("input", render, false);
+	font.addEventListener("load", render, false);
+}, false);
+</script>
+</head>
+<body>
+<textarea id="input_text" rows="20" cols="40">Game Title
+2020 Name of Author
+Number of players
+
+20 lines max. First 4 for info.
+lines wider then 128 pixels will cut off.
+
+Available Characters:
+©ŁłżęⒶⒷ✜🐦↑↓←→
+ !"#$%&'()*+,-./0123456789:;<
+=>?@ABCDEFGHIJKLMNOPQR
+STUVWXYZ[\]^_`abcdefghijkl
+mnopqrstuvwxyz{|}~␣
+
+'␣' is a single pixel space
+
+✜ Move
+Ⓑ Run
+Ⓐ Jump
+Start: Inventory Menu</textarea><canvas id="c" width="144" height="176">&lt;canvas&gt; required</canvas>
+</body>
+</html>

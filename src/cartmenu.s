@@ -905,7 +905,6 @@ blankrowatbottomloop:
 ; 10: 2-byte offset to description within the description block
 ; 12: 2-byte reset vector
 ; 14-15: unused
-; 16-31: music player garbage
 ; @param A title number
 ; @return pointer in $00-$01
 .proc get_titledir_a
@@ -913,7 +912,7 @@ blankrowatbottomloop:
   lda #$00
   sta 1
   lda 0
-  .repeat 5
+  .repeat 4
   asl a
   rol 1
   .endrepeat
@@ -1289,70 +1288,72 @@ not2ndhalf:
 
   lda draw_progress
   beq draw_step_titlelist::have_titledir
-  cmp #2
-  bcc continue_title     ; 1. year and author
-  beq do_players         ; 2. player count
-  cmp #4
-  bcc line_done          ; 3. blank line
-  beq start_description  ; 4. first line of description
+;  cmp #2
+;  bcc continue_title     ; 1. year and author
+;  beq do_players         ; 2. player count
+;  cmp #4
+;  bcc line_done          ; 3. blank line
+;  beq start_description  ; 4. first line of description
+  cmp #1
+  beq start_description  ; 1. first line of description
   jmp continue_description
-continue_title:
-  lda screenshot_titleno
-  cmp cur_titleno
-  beq :+
-    jsr hide_screenshot
-  :
-  ldy #'2'
-  sty interbank_fetch_buf
-  ldy #'0'
-  sty interbank_fetch_buf+1
-  ldy #0
-  sty interbank_fetch_buf+4
-  ldy #3
-  lda (0),y
-  sec
-  sbc #2000-1970
-  bcs not_before_2000
-  dec interbank_fetch_buf
-  ldy #'9'
-  sty interbank_fetch_buf+1
-  adc #256-100
-not_before_2000:
-  jsr bcd8bit
-  ora #'0'
-  sta interbank_fetch_buf+3
-  lda 0
-  and #$0F
-  ora #'0'
-  sta interbank_fetch_buf+2
-  lda 0
-  lsr a
-  lsr a
-  lsr a
-  lsr a
-  clc
-  adc interbank_fetch_buf+1
-  sta interbank_fetch_buf+1
-  lda #>interbank_fetch_buf
-  ldy #<interbank_fetch_buf
-  ldx #0
-  jsr vwfPuts
-
-  lda desc_data_ptr+1
-  ldy desc_data_ptr
-  ldx #24
-  bne have_line_ptr_with_x
-do_players:
-  ldy #4
-  lda (0),y
-  asl a
-  tax
-  lda numplayers_names+1,x
-  ldy numplayers_names,x
-have_line_ptr:
-  ldx #0
-have_line_ptr_with_x:
-  jsr vwfPuts
+;continue_title:
+;  lda screenshot_titleno
+;  cmp cur_titleno
+;  beq :+
+;    jsr hide_screenshot
+;  :
+;  ldy #'2'
+;  sty interbank_fetch_buf
+;  ldy #'0'
+;  sty interbank_fetch_buf+1
+;  ldy #0
+;  sty interbank_fetch_buf+4
+;  ldy #3
+;  lda (0),y
+;  sec
+;  sbc #2000-1970
+;  bcs not_before_2000
+;  dec interbank_fetch_buf
+;  ldy #'9'
+;  sty interbank_fetch_buf+1
+;  adc #256-100
+;not_before_2000:
+;  jsr bcd8bit
+;  ora #'0'
+;  sta interbank_fetch_buf+3
+;  lda 0
+;  and #$0F
+;  ora #'0'
+;  sta interbank_fetch_buf+2
+;  lda 0
+;  lsr a
+;  lsr a
+;  lsr a
+;  lsr a
+;  clc
+;  adc interbank_fetch_buf+1
+;  sta interbank_fetch_buf+1
+;  lda #>interbank_fetch_buf
+;  ldy #<interbank_fetch_buf
+;  ldx #0
+;  jsr vwfPuts
+;
+;  lda desc_data_ptr+1
+;  ldy desc_data_ptr
+;  ldx #24
+;  bne have_line_ptr_with_x
+;do_players:
+;  ldy #4
+;  lda (0),y
+;  asl a
+;  tax
+;  lda numplayers_names+1,x
+;  ldy numplayers_names,x
+;have_line_ptr:
+;  ldx #0
+;have_line_ptr_with_x:
+;  jsr vwfPuts
 line_done:
   lda #16
   jmp invertTiles

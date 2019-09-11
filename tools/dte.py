@@ -46,7 +46,7 @@ On the other hand, we denounce with righteous indignation and dislike men who ar
 MINFREQ = 3
 # First code unit that is not considered a control character;
 # should match value in vwf_draw.s
-FIRST_PRINTABLE_CU = 0x14
+FIRST_PRINTABLE_CU = 0x13
 
 def olcount(haystack, needle):
     """Count times the 2-character needle appears in haystack, including overlaps."""
