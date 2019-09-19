@@ -41,13 +41,16 @@ copyloop:
   lda #$FF
   cmp $FFFD
   bne ff_not_in_reset
+
   sta $FFFD
   rts
 ff_not_in_reset:
   ldy $FFFC
   sty 2
-  ldy $FFFD
-  sty 3
+  lda $FFFD
+  ora #$80  ; warp the byte loaded if it's not within ROM already. otherwise
+            ; it'll be reads from nowhere, and writes fails to bank switch
+  sta 3
   ldy #0
   lda #$FF
 homeloop:

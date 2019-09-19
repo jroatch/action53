@@ -354,15 +354,16 @@ def get_mapmode(romdata):
 # ROM and title validation ##########################################
 
 players_types = {
-    '1': 0,  # 1 player
-    '2': 1,  # 2 players ONLY
-    '1-2': 2,  # 1 or 2 players
-    '1-2 alt': 3,  # 1 or 2 players alternating
-    '1-3': 4,  # 1 to 3 players
-    '1-4': 5,  # 1 to 4 players
-    '2-4 alt': 6,  # 2 to 4 players alternating
-    '2-6 alt': 7,  # 2 to 6 players alternating
-    '2-4': 8,  # 2 to 4 players w/Four Score
+    'hr': 0, # not a game, but a menu horizontial rule
+    '1': 1,  # 1 player
+    '2': 2,  # 2 players ONLY
+    '1-2': 3,  # 1 or 2 players
+    '1-2 alt': 4,  # 1 or 2 players alternating
+    '1-3': 5,  # 1 to 3 players
+    '1-4': 6,  # 1 to 4 players
+    '2-4 alt': 7,  # 2 to 4 players alternating
+    '2-6 alt': 8,  # 2 to 6 players alternating
+    '2-4': 9,  # 2 to 4 players w/Four Score
 }
 
 
@@ -595,6 +596,8 @@ all_patches is a list of (rompath, bank, address, data bytes) values
             except Exception as e:
                 print("%s: loading: %s" % (t['title'], e), file=sys.stderr)
                 continue
+            if warnings:
+                skips.append(rompath)
             skips.extend(warnings)
             all_patches.extend(rom_patches)
     
@@ -786,7 +789,7 @@ indices into prgbanks and chrbanks respectively
 
 blank_bank = b''.join((
     bytes(32768 - 16),
-    bytes.fromhex("78A2FF9A8EF2FF6CFCFFF0FFF0FFF0FF")
+    bytes.fromhex("78A2FFEA8EF2FF6CFCFFF0FFF0FFF0FF")
 ))
 assert len(blank_bank) == 32768
 
@@ -906,7 +909,7 @@ scrdir[i * 3:i * 3 + 3].
     scr_sorted = sorted(enumerate(screenshots), key=lambda x: -len(x[1]))
     scr_directory = [None for i in screenshots]
     for (i, d) in scr_sorted:
-        scr_directory[i] = ffd_add(prgbanks, d)
+        scr_directory[i] = ffd_add(prgbanks, d, from_end=True)
     if trace:
         print("%d screenshots totaling %d compressed bytes plus %d for the directory"
               % (len(screenshots),
@@ -957,7 +960,7 @@ second from (Address + Midpoint).
                         for (i, (d, mp)) in pb53banks_sorted))
     chr_directory = [None for i in pb53banks]
     for (i, (data, midpoint)) in pb53banks_sorted:
-        chr_directory[i] = ffd_add(prgbanks, data) + tuple(midpoint)
+        chr_directory[i] = ffd_add(prgbanks, data, from_end=True) + tuple(midpoint)
     chrdir = b''.join(bytes([
         b & 0xFF, a & 0xFF, a >> 8, mp & 0xFF, mp >> 8
     ]) for (b, a, mp) in chr_directory)
@@ -1350,9 +1353,9 @@ def main(argv=None):
     del prgbank, all_patches, cfg_patches, exit_patches
 
     # Insert tile data for CHR ROM and screenshots
-    chrdir = insert_chr(chrbanks, prgbanks)
+    chrdir = insert_chr(chrbanks, prgbanks[:-1])
     del chrbanks
-    (scrdir, screenshot_ids) = insert_screenshots(titles, prgbanks, cfgfilename)
+    (scrdir, screenshot_ids) = insert_screenshots(titles, prgbanks[:-1], cfgfilename)
 
     # Create the title directory
     (titledir, name_block, desc_block, dte_replacements) \
@@ -1378,9 +1381,14 @@ def main(argv=None):
         raise ValueError("internal error: directory size of %d bytes does not match estimate of %d"
                          % (dirs_len2, est_dirs_len))
 
-
-
-    desc_block_addr = ffd_add(final_banks, desc_block)
+    # This is a debug canary that will cause random bugs
+    # if unused_ranges are not correct.
+    for (i, (d, unused_ranges)) in enumerate(prgbanks[:-1]):
+        for (s, e) in unused_ranges:
+            s -= 0x8000
+            e -= 0x8000
+            d[s:e] = bytes(e-s)
+            #d[s:e] = os.urandom(e-s)
 
     checksums_dir = bytearray()
     for bank in prgbanks:
@@ -1395,6 +1403,8 @@ def main(argv=None):
     checksums_dir[-3] = 0
     checksums_dir[-4] = 0
 
+    dte_replacements_addr = ffd_add(final_banks, dte_replacements)
+    desc_block_addr = ffd_add(final_banks, desc_block)
     name_block_addr = ffd_add(final_banks, name_block)
     romdir_addr = ffd_add(final_banks, romdir)
     titledir_addr = ffd_add(final_banks, titledir)
@@ -1402,14 +1412,13 @@ def main(argv=None):
     chrdir_addr = ffd_add(final_banks, chrdir)
     pagedir_addr = ffd_add(final_banks, pagedir)
     title_screen_addr = ffd_add(final_banks, title_screen_sb53)
-    dte_replacements_addr = ffd_add(final_banks, dte_replacements)
+    title_strings_addr = ffd_add(final_banks, title_lines_data)
+    checksums_dir_addr = ffd_add(final_banks, checksums_dir)
+
     if trace:
         print("Remaining space in last bank:",
               ', '.join("%04x-%04x" % (s, e - 1)
                         for s, e in final_banks[0][1]))
-
-    title_strings_addr = ffd_add(final_banks, title_lines_data)
-    checksums_dir_addr = ffd_add(final_banks, checksums_dir)
 
     # Preadjust DTE table for indexing using Y register equal to
     # (codeunit - 128) * 2 and (codeunit - 128) * 2 + 1
@@ -1457,6 +1466,16 @@ def main(argv=None):
               % (romdir_addr[1], romdir_addr[1] + len(romdir) - 1,
                  titledir_addr[1], titledir_addr[1] + len(titledir) - 1))
     final_bank[0x0000:0x0000 + len(keyblock)] = keyblock
+
+    # This is a debug canary that will cause random bugs
+    # if unused_ranges are not correct.
+    for (i, (d, unused_ranges)) in enumerate(final_banks):
+        for (s, e) in unused_ranges:
+            s -= 0x8000
+            e -= 0x8000
+            d[s:e] = bytes(e-s)
+            #d[s:e] = os.urandom(e-s)
+
     db_checksum = crc16xmodem.crc16xmodem(final_bank[0x0000:0x3ffe])
     print("db_checksum $%04x" % db_checksum)
     final_bank[0x3ffe] = db_checksum >> 8

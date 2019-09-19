@@ -17,7 +17,7 @@ def dte_compress(lines, compctrl=False, mincodeunit=128):
     excluderange = "0x00-0x00" if compctrl else "0x00-0x1F"
     digramrange = "0x%02x-0xFF" % mincodeunit
     compress_cmd_line = [
-        dte_path, "-c", "-e", excluderange, "-r", digramrange
+        dte_path, "-c", "-m1", "-e", excluderange, "-r", digramrange
     ]
     inputdata = delimiter.join(lines)
     spresult = subprocess.run(

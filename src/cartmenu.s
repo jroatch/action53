@@ -1755,10 +1755,13 @@ theme_text:
   .byt 0
 .endif
 
+.if 0
 numplayers_names:
+  .addr numplayers_null,
   .addr numplayers_1, numplayers_2only, numplayers_12, numplayers_12alt
   .addr numplayers_13, numplayers_14, numplayers_24alt, numplayers_26alt
   .addr numplayers_24fs
+numplayers_null:   .byt 0
 numplayers_1:      .byt "1 player",0
 numplayers_2only:  .byt "2 players ONLY",0
 numplayers_12:     .byt "1 or 2 players",0
@@ -1768,3 +1771,4 @@ numplayers_14:     .byt "1 to 4 players",0
 numplayers_24alt:  .byt "2 to 4 players alternating",0
 numplayers_26alt:  .byt "2 to 6 players alternating",0
 numplayers_24fs:   .byt "2 to 4 players w/Four Score",0
+.endif

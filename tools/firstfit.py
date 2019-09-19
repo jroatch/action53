@@ -44,7 +44,7 @@ def slices_remove(slices, start_end):
     else:  # cutting the middle out of a slice
         slices[idx:idx + 1] = [(slices[idx][0], start), (end, slices[idx][1])]
 
-def ffd_find(prgbanks, datalen, bank_factory=None):
+def ffd_find(prgbanks, datalen, bank_factory=None, from_end=False):
     """Find the first unused range that will accept a given piece of data.
 
 prgbanks -- a list of (bytearray, slice list) tuples
@@ -60,8 +60,12 @@ that O(n log n) requires.  Yet.
 
 Return a (bank, address) tuple denoting where it would be inserted.
 """
+    if from_end:
+        enum = reversed(list(enumerate(prgbanks)))
+    else:
+        enum = enumerate(prgbanks)
 
-    for (bank, (prgdata, unused_ranges)) in enumerate(prgbanks):
+    for (bank, (prgdata, unused_ranges)) in enum:
         for (start, end) in unused_ranges:
             if start + datalen <= end:
                 return (bank, start)
@@ -70,14 +74,14 @@ Return a (bank, address) tuple denoting where it would be inserted.
     # bank that has the reset patch built into it.
     if not bank_factory:
         raise ValueError("could not add bank")
-        
+
     prgbanks.append(bank_factory())
     last_bank_ranges = prgbanks[-1][1]
     if datalen > last_bank_ranges[0][1] - last_bank_ranges[0][0]:
         raise ValueError("string too long")
     return (len(prgbanks) - 1, 0x8000)
 
-def ffd_add(prgbanks, data, bank_factory=None):
+def ffd_add(prgbanks, data, bank_factory=None, from_end=False):
     """Insert a string into a bank using FFD.
 
 data -- the byte string to insert
@@ -86,7 +90,7 @@ Other arguments and return same as those for ffd_find.
 """
     from array import array
 
-    (bank, address) = ffd_find(prgbanks, len(data), bank_factory)
+    (bank, address) = ffd_find(prgbanks, len(data), bank_factory, from_end)
     offset = address - 0x8000
     (romdata, unused_ranges) = prgbanks[bank]
     romdata[offset:offset + len(data)] = array('B', data)
