@@ -354,9 +354,9 @@ def get_mapmode(romdata):
 # ROM and title validation ##########################################
 
 players_types = {
-    'hr': 0, # not a game, but a menu horizontial rule
-    '1': 1,  # 1 player
-    '2': 2,  # 2 players ONLY
+    'none': 0, # empty string, could be for a menu horizontial rule
+    '1': 1,    # 1 player
+    '2': 2,    # 2 players ONLY
     '1-2': 3,  # 1 or 2 players
     '1-2 alt': 4,  # 1 or 2 players alternating
     '1-3': 5,  # 1 to 3 players
@@ -788,7 +788,7 @@ indices into prgbanks and chrbanks respectively
     return (prgbanks, chrbanks, prg_starts, chr_starts, chr_lengths)
 
 blank_bank = b''.join((
-    bytes(32768 - 16),
+    b'\xff'*(32768 - 16),
     bytes.fromhex("78A2FFEA8EF2FF6CFCFFF0FFF0FFF0FF")
 ))
 assert len(blank_bank) == 32768
@@ -1387,7 +1387,7 @@ def main(argv=None):
         for (s, e) in unused_ranges:
             s -= 0x8000
             e -= 0x8000
-            d[s:e] = bytes(e-s)
+            d[s:e] = b'\xff'*(e-s)
             #d[s:e] = os.urandom(e-s)
 
     checksums_dir = bytearray()
@@ -1403,17 +1403,17 @@ def main(argv=None):
     checksums_dir[-3] = 0
     checksums_dir[-4] = 0
 
+    checksums_dir_addr = ffd_add(final_banks, checksums_dir)
     dte_replacements_addr = ffd_add(final_banks, dte_replacements)
     desc_block_addr = ffd_add(final_banks, desc_block)
     name_block_addr = ffd_add(final_banks, name_block)
-    romdir_addr = ffd_add(final_banks, romdir)
+    #romdir_addr = ffd_add(final_banks, romdir)
     titledir_addr = ffd_add(final_banks, titledir)
     scrdir_addr = ffd_add(final_banks, scrdir)
     chrdir_addr = ffd_add(final_banks, chrdir)
     pagedir_addr = ffd_add(final_banks, pagedir)
     title_screen_addr = ffd_add(final_banks, title_screen_sb53)
     title_strings_addr = ffd_add(final_banks, title_lines_data)
-    checksums_dir_addr = ffd_add(final_banks, checksums_dir)
 
     if trace:
         print("Remaining space in last bank:",
@@ -1436,7 +1436,7 @@ def main(argv=None):
     # 02  page dir address
     # 02  name block address
     # 02  desc block address
-    # 01  desc block bank
+    # 01  desc block bank (deprecated)
     # 01  unused
     # 02  title screen address
     # 02  title strings address
@@ -1452,19 +1452,17 @@ def main(argv=None):
         name_block_addr[1] & 0xFF, name_block_addr[1] >> 8,
         desc_block_addr[1] & 0xFF, desc_block_addr[1] >> 8,
 #        desc_block_addr[0], 0,
-        0xff, 0,
+        0xff, 0x00,
         title_screen_addr[1] & 0xFF, title_screen_addr[1] >> 8,
         title_strings_addr[1] & 0xFF, title_strings_addr[1] >> 8,
         preadj_dte_addr & 0xFF, preadj_dte_addr >> 8,
         checksums_dir_addr[1] & 0xFF, checksums_dir_addr[1] >> 8,
-        romdir_addr[1] & 0xFF, romdir_addr[1] >> 8
+        0x00, 0x00,
     ])
+    assert(len(keyblock) == 0x20)
     if trace:
         print("DTE table at $%04x" % preadj_dte_addr)
         print("descriptions in bank %d byte $%04x" % desc_block_addr)
-        print("romdir at $%04x-$%04x, titledir at $%04x-$%04x"
-              % (romdir_addr[1], romdir_addr[1] + len(romdir) - 1,
-                 titledir_addr[1], titledir_addr[1] + len(titledir) - 1))
     final_bank[0x0000:0x0000 + len(keyblock)] = keyblock
 
     # This is a debug canary that will cause random bugs
@@ -1473,7 +1471,7 @@ def main(argv=None):
         for (s, e) in unused_ranges:
             s -= 0x8000
             e -= 0x8000
-            d[s:e] = bytes(e-s)
+            d[s:e] = b'\xff'*(e-s)
             #d[s:e] = os.urandom(e-s)
 
     db_checksum = crc16xmodem.crc16xmodem(final_bank[0x0000:0x3ffe])

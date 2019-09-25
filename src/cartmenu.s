@@ -1238,8 +1238,6 @@ line_ready:
   ; now copy the line
   lda #16
   jmp invertTiles
-
-
 .endproc
 
 .proc blit_step_vwf
@@ -1288,75 +1286,9 @@ not2ndhalf:
 
   lda draw_progress
   beq draw_step_titlelist::have_titledir
-;  cmp #2
-;  bcc continue_title     ; 1. year and author
-;  beq do_players         ; 2. player count
-;  cmp #4
-;  bcc line_done          ; 3. blank line
-;  beq start_description  ; 4. first line of description
   cmp #1
-  beq start_description  ; 1. first line of description
-  jmp continue_description
-;continue_title:
-;  lda screenshot_titleno
-;  cmp cur_titleno
-;  beq :+
-;    jsr hide_screenshot
-;  :
-;  ldy #'2'
-;  sty interbank_fetch_buf
-;  ldy #'0'
-;  sty interbank_fetch_buf+1
-;  ldy #0
-;  sty interbank_fetch_buf+4
-;  ldy #3
-;  lda (0),y
-;  sec
-;  sbc #2000-1970
-;  bcs not_before_2000
-;  dec interbank_fetch_buf
-;  ldy #'9'
-;  sty interbank_fetch_buf+1
-;  adc #256-100
-;not_before_2000:
-;  jsr bcd8bit
-;  ora #'0'
-;  sta interbank_fetch_buf+3
-;  lda 0
-;  and #$0F
-;  ora #'0'
-;  sta interbank_fetch_buf+2
-;  lda 0
-;  lsr a
-;  lsr a
-;  lsr a
-;  lsr a
-;  clc
-;  adc interbank_fetch_buf+1
-;  sta interbank_fetch_buf+1
-;  lda #>interbank_fetch_buf
-;  ldy #<interbank_fetch_buf
-;  ldx #0
-;  jsr vwfPuts
-;
-;  lda desc_data_ptr+1
-;  ldy desc_data_ptr
-;  ldx #24
-;  bne have_line_ptr_with_x
-;do_players:
-;  ldy #4
-;  lda (0),y
-;  asl a
-;  tax
-;  lda numplayers_names+1,x
-;  ldy numplayers_names,x
-;have_line_ptr:
-;  ldx #0
-;have_line_ptr_with_x:
-;  jsr vwfPuts
-line_done:
-  lda #16
-  jmp invertTiles
+  bne continue_description  ; 2+. more lines
+;,;  beq start_description  ; 1. first line of description
 
 start_description:
   ldy #10
@@ -1370,20 +1302,11 @@ start_description:
   sta desc_data_ptr+1
 
 continue_description:
-  lda desc_data_ptr
-  sta 0
-  lda desc_data_ptr+1
-  sta 1
-  lda #<DESCSBANK
-  sta 2
-  lda #>DESCSBANK
-  sta 3
-  lda #48
-  sta 4
-  lda #10
-  sta interbank_fetch_buf+48
-  jsr interbank_fetch
-  lda interbank_fetch_buf+0
+
+  ; no longer fetching the discription with interbank fetch
+
+  ldy #0
+  lda (desc_data_ptr),y
   bne not_eot
     ; End of text: Draw blank lines until finished
     lda num_lines_on_page
@@ -1396,14 +1319,14 @@ continue_description:
 
   ; Decompress using DTE
 
-  lda #>interbank_fetch_buf
-  ldy #<interbank_fetch_buf
+  ldy desc_data_ptr+0
+  lda desc_data_ptr+1
   jsr undte_line
   ; A is size of DTE including line/text terminator; Y is length of
   ; decompressed string which we don't need.
   tay
   dey
-  lda interbank_fetch_buf,y
+  lda (desc_data_ptr),y
   cmp #$01  ; Carry 0: null; 1: newline
   tya
   adc desc_data_ptr
@@ -1416,7 +1339,10 @@ continue_description:
   lda #>dte_output_buf
   ldy #<dte_output_buf
   jsr vwfPuts
-  jmp line_done
+
+line_done:
+  lda #16
+  jmp invertTiles
 .endproc
 
 .proc draw_step_screenshot
