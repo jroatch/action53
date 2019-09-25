@@ -151,17 +151,12 @@ MOUSE_LISTENTRY_HEIGHT = 8
 .endif
 
   jsr cartmenu_setup_oam
-  jsr hide_screenshot
 
 forever:
   lda #8  ; 0: sprite 0 for timing; 4: arrow sprite
   sta oam_used
 
-  lda screenshot_titleno
-  cmp cur_titleno
-  bne no_screenshot
-    jsr show_screenshot
-  no_screenshot:
+  jsr show_or_hide_screenshot
   jsr wait_sprite_0
   jsr draw_step_dispatch
   jsr ppu_wait_vblank
@@ -264,6 +259,9 @@ mouse_no_move:
   iny
   cmp (tab_data_ptr),y
   bcs no_zapper_move
+
+  jsr is_titleno_a_is_hr
+  bcc no_zapper_move
 
   sta cur_titleno
   jsr move_to_page_with_title
@@ -390,6 +388,21 @@ resetMouseX:
   sta mouse_x
 notUp:
 
+  ; After a cursor move from controllers
+  ; check to see if cur_titleno is a horizontal rule
+  ; if so adjust up or down depending on the direction moved
+  lda cur_titleno
+  jsr is_titleno_a_is_hr
+  bcs no_hr_adjust
+    lda new_keys
+    and #KEY_UP
+    beq :+
+      dec cur_titleno
+      .byte $2c
+    :
+    inc cur_titleno
+  no_hr_adjust:
+
   bit new_keys
   bpl notA
   lda showing_description
@@ -424,6 +437,18 @@ done:
   lda #PE_start_activity
   jsr pently_start_sound
   lda cur_titleno
+  rts
+.endproc
+
+.proc is_titleno_a_is_hr
+  ; carry cleared if is a hr, set if else
+  ; For now a player type of 0 counts as a horizontal rule
+  pha
+    jsr get_titledir_a
+    ldy #TITLE_PLAYERS_TYPE
+    lda (0),y
+    cmp #1         ; CLC if A=0, SEC if A>=1
+  pla
   rts
 .endproc
 
@@ -1213,7 +1238,7 @@ have_titledir:
   lda #MAX_LINES
   sta num_lines_on_page
   clc
-  ldy #8
+  ldy #TITLE_NAME_OFFSET
   lda NAMESLIST
   adc (0),y
   sta 2
@@ -1291,7 +1316,7 @@ not2ndhalf:
 ;,;  beq start_description  ; 1. first line of description
 
 start_description:
-  ldy #10
+  ldy #TITLE_DESC_OFFSET
   clc
   lda (0),y
   adc DESCSLIST
@@ -1387,7 +1412,6 @@ ibflen = $04
     lda cur_titleno
     ora #$80
     sta screenshot_titleno
-    jsr hide_screenshot
 
     ; Seek to the screenshot's header
     ldy #1
@@ -1595,7 +1619,13 @@ s0data_end:
 .popseg
 .endproc
 
-.proc show_screenshot
+
+.proc show_or_hide_screenshot
+  lda screenshot_titleno
+  cmp cur_titleno
+  bne hide
+  ;,; beq show
+show:
 tn = $00
 attrbits = $01
   lda #<(SCREENSHOT_BASE_ADDR >> 4)
@@ -1605,7 +1635,7 @@ attrbits = $01
   ldy #0
   lda #$80
   sta attrbits
-  loop:
+  show_loop:
     lda tn
     sta OAM+1,x
     inc tn
@@ -1623,13 +1653,11 @@ attrbits = $01
     inx
     inx
     inx
-    bne loop
+    bne show_loop
   rts
-.endproc
-
-.proc hide_screenshot
+hide:
   ldx #SCREENSHOT_OAM_START
-  loop:
+  hide_loop:
     lda #BLANK_TILE
     sta OAM+1,x
     lda #SCREENSHOT_SOLID_PALETTE
@@ -1638,7 +1666,7 @@ attrbits = $01
     inx
     inx
     inx
-    bne loop
+    bne hide_loop
   rts
 .endproc
 
