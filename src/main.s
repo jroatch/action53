@@ -208,12 +208,29 @@ coredump_at_boot_readpad:
   tya
   pha  ; save controller read across the ram clear
 
-  ; Clear zeropage and OAM, to prevent uninitialized reads in nmis, etc.
-  ldy #$00
   txa ;,; lda #$ff
+  ldy #4
+  set_rng_seed_loop:
+    dey
+    sta rng_seed, y
+  bne set_rng_seed_loop
+  ;,; ldy #$00
+
+  ; Clear zeropage and OAM, while seeding rng.
+  ;,; ldy #$00
   inx ;,; ldx #$00
+  stx OAMADDR
   clear_zp_and_oam_loop:
+    lda rng_seed+0
+    eor $00, x
+    eor OAMDATA
+    ; should be alright before ppu warmup per
+    ; "Randomness before the first button press" nesdev thread
+    sta rng_seed+0
+    jsr rng_cc65_step_byte
+    ;,; ldy #$00
     sty $00, x
+    lda #$ff
     sta OAM, x
     inx
   bne clear_zp_and_oam_loop
@@ -302,9 +319,6 @@ copy_LOWCODE:
   pha
   jsr get_titledir_a
   jsr load_titledir_chr_rom
-  ldx #0
-  ; jsr ppu_clear_oam  ; Clear OAM because Snail Maze Game doesn't
-  ; no point as ram gets cleared at start_game
   pla
 
   ; CHR data is loaded.
@@ -328,8 +342,20 @@ titleptr = $00
     jmp :-
   :
 
+  lda #$00
+  tay  ;,; ldy #$00
+  ldx #$20
+  jsr ppu_clear_nt
+  ldx #$2c
+  jsr ppu_clear_nt
+
   ldx #0
   stx SNDCHN
+  ; Clear Hardware OAM so there isn't a blue tv screen flash in games
+  stx OAMADDR
+  jsr ppu_clear_oam
+  lda #>OAM
+  sta OAM_DMA
   jmp start_game
 .endproc
 

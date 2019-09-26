@@ -115,7 +115,10 @@ Each activity has a 16-byte record:
 * 1 byte: Year of first publication minus 1970 (48 means 2018)
 * 1 byte: Number of players type
 * 1 byte: Number of CHR banks
-* 2 bytes: Unused
+* 1 byte:
+    - Low nibble: page to clear as OAM (to 0xff), (Both nibbles disabled if page number >=8)
+    - High nibble: page to randomize, (High nibble also disabled on stack page)
+* 2 byte: Unused
 * 2 bytes: Offset in activity names to start of title and author
 * 2 bytes: Offset in descriptions to start of description
 * 2 bytes: Reset vector

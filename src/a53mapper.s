@@ -11,6 +11,7 @@
 ; @param start_entrypoint activity's entry point
 ; @param start_mappercfg activity's starting mapper configuration
 .proc start_game
+clear_ram_ptr = $00
   ; A53 Mapper register write sequence:
   ;
   ;  $$00 = 0x00
@@ -92,33 +93,65 @@
   :
   pha
 
-  ; Before commiting to mapper writes, Clear RAM and Nametables
+  ; Unpack special clearing operations
+  ldy #TITLE_RAM_CLEAR_OPS
+  lda (start_bankptr),y
+  and #$0f
+  sta $0100
+  lda (start_bankptr),y
+  lsr
+  lsr
+  lsr
+  lsr
+  sta $0101
+
+  ; Before commiting to mapper writes, Clear RAM
   ; while avoiding the trampoline area in stack page.
-  ; TODO: Code golf this to take less ROM bytes.
-  lda #$20
-  ldx #$00
-  sta PPUADDR
-  stx PPUADDR
-  txa
-  clear_memory_loop:
-    sta $00,x
-    ; leave stack page for the ram code to clear.
-    sta $0200,x
-    sta $0300,x
-    sta $0400,x
-    sta $0500,x
-    sta $0600,x
-    sta $0700,x
-    ldy #16
-    clear_part_nt_loop:
-      sta PPUDATA
-      dey
-    bne clear_part_nt_loop
-    inx
-  bne clear_memory_loop
+  ; and also clear the OAM page of the activity to 0xff
+clear_memory:
+  ldy #$00    ; Y: low byte ram adress
+  ldx #$07    ; X: high byte ram adress
+  lda #$00    ; A: value to set
+  sty clear_ram_ptr+0
+  InitPageLoop:
+    stx clear_ram_ptr+1
+    lda #$00
+    cpx $0100
+    bne not_ff
+      lda #$ff
+    not_ff:
+    cpx #$01        ; leave stack page for the ram code to clear.
+    beq skip_stack_page
+    ; if page is not 0x01 but less then 0x01 (aka 0x00), then exit to special zero page loop.
+    ; otherwise the indirect pointer will be overwritten while in use.
+    bcc do_zero_page_loop
+      ;,; ldy #$00
+      InitByteLoop:
+        cpx $0101
+        bne not_random
+          jsr rng_cc65_step_byte
+        not_random:
+        sta (clear_ram_ptr),y       ;otherwise, initialize byte with current low byte in Y
+        iny
+      bne InitByteLoop
+    skip_stack_page:
+    dex               ;go onto the next page
+  bpl InitPageLoop
+  do_zero_page_loop:
+    cpx $0101
+    bne not_zp_random
+      jsr rng_cc65_step_byte
+    not_zp_random:
+    sta 0,y
+    iny
+  bne do_zero_page_loop
+
+  ; if special clearing operations low nibble = $01 then clear stack page.
+  ; to make the comparision in the ram code simpler change 0x01 to 0x00
+  dec $0100
 
   ; Start with CHR bank 0
-  ; ldx #$00  ; set by previous inx/bne pair
+  ldx #$00
   stx $5000
   stx $8000
 
@@ -146,6 +179,10 @@ trampoline_code_begin:
   ldx #$ff-((trampoline_code_end + 2) - clr_sp_loop)
   txs
   lda #$00
+  cmp $0100
+  bne ram_code_not_ff
+    lda #$ff
+  ram_code_not_ff:
   inx
   clr_sp_loop:
     dex

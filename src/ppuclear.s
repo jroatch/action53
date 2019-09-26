@@ -93,6 +93,7 @@ loop:
 .endproc
 
 .proc ppu_wait_vblank
+  jsr rng_cc65_step_byte
   lda nmis
   :
     cmp nmis

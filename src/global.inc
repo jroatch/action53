@@ -91,6 +91,10 @@ DETECT_1P_MOUSE = $01
 ; quadpcm.s methods
 .global quadpcm_test
 
+; rng
+.global rng_cc65_step_byte
+.global rng_seed
+
 ; Directories
 DIRECTORY_HEADER = $8000
 NEG_NUMBER_OF_BANKS = $8005
@@ -113,6 +117,7 @@ TITLE_SCREENSHOT  = $02
 TITLE_YEAR        = $03
 TITLE_PLAYERS_TYPE= $04
 TITLE_NUMBER_OF_CHR = $05
+TITLE_RAM_CLEAR_OPS = $06
 TITLE_NAME_OFFSET = $08
 TITLE_DESC_OFFSET = $0A
 TITLE_ENTRY_POINT = $0C

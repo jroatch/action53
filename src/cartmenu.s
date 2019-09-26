@@ -437,7 +437,11 @@ done:
   lda #PE_start_activity
   jsr pently_start_sound
   lda cur_titleno
+  jsr is_titleno_a_is_hr
+  bcc uh_oh_we_goofed
   rts
+uh_oh_we_goofed:
+  brk
 .endproc
 
 .proc is_titleno_a_is_hr

@@ -1188,9 +1188,25 @@ the name block, and the description block.
         #else:
         #    musicplayerdat = b'\x00'*16
 
+        if "oampage" in title:
+            oam_page_num = int(title['oampage'])
+            if not (0 < oam_page_num < 16):
+                raise ValueError("oampage must a integer between 0 and 15")
+        else:
+            oam_page_num = 2
+            # I can count on one hand the number of homebrew games
+            # that *don't* use page 2 for OAM. Use a value of 8~15 to disable
+
+        if "randpage" in title:
+            rand_page_num = int(title['randpage'])
+            if not (0 < oam_page_num < 16):
+                raise ValueError("randpage must a integer between 0 and 15")
+        else:
+            rand_page_num = 15
+
         titledir_data = [
             prgstart, chr_starts[i], screenshot_ids[i], year,
-            int(players), chr_lengths[i], 0, 0,
+            int(players), chr_lengths[i], rand_page_num * 16 + oam_page_num, 0,
             name_offset & 0xFF, name_offset >> 8,
             0, 0,  # reserved for description data
             reset & 0xFF, reset >> 8,
