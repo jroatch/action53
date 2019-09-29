@@ -195,41 +195,35 @@ coredump_at_boot_readpad:
   not_coredump:
 
   ; Now that we know we're not running coredump:
-  ; set up and use the stack
+  ; set up the stack, load the in ram nmi routine,
+  ; and initalize the prng seed
   ;,; ldx #$ff
   txs  ; Set stack pointer
+  stx prng_seed+0
   ldx #3-1
   load_nmi_routine:
     lda nmi, x
+    sta prng_seed+1, x
     pha
     dex
   bpl load_nmi_routine
   ;,; ldx #$ff
   tya
-  pha  ; save controller read across the ram clear
-
-  txa ;,; lda #$ff
-  ldy #4
-  set_rng_seed_loop:
-    dey
-    sta rng_seed, y
-  bne set_rng_seed_loop
-  ;,; ldy #$00
+  pha  ; save the first controller read across the ram clear
 
   ; Clear zeropage and OAM, while seeding rng.
-  ;,; ldy #$00
   inx ;,; ldx #$00
   stx OAMADDR
   clear_zp_and_oam_loop:
-    lda rng_seed+0
+    lda prng_seed+0
     eor $00, x
     eor OAMDATA
     ; should be alright before ppu warmup per
     ; "Randomness before the first button press" nesdev thread
-    sta rng_seed+0
-    jsr rng_cc65_step_byte
-    ;,; ldy #$00
-    sty $00, x
+    sta prng_seed+0
+    jsr prng_galois32o
+    lda #$00
+    sta $00, x
     lda #$ff
     sta OAM, x
     inx

@@ -21,7 +21,7 @@ cfgversion := page1
 # (the \ character) at the end of the line and continue on the next.
 objlist := \
   vwf7 wait_loops vwf_draw quadpcm bcd paldetect zapkernels \
-  a53mapper main title cartmenu coredump donut rng \
+  a53mapper main title cartmenu coredump donut prng \
   interbank_fetch pads mouse ppuclear identify undte \
   pentlysound pentlymusic checksums
 

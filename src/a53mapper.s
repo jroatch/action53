@@ -12,6 +12,7 @@
 ; @param start_mappercfg activity's starting mapper configuration
 .proc start_game
 clear_ram_ptr = $00
+temp_y = $02
   ; A53 Mapper register write sequence:
   ;
   ;  $$00 = 0x00
@@ -113,7 +114,7 @@ clear_memory:
   ldx #$07    ; X: high byte ram adress
   lda #$00    ; A: value to set
   sty clear_ram_ptr+0
-  InitPageLoop:
+  clear_memory_loop:
     stx clear_ram_ptr+1
     lda #$00
     cpx $0100
@@ -124,27 +125,31 @@ clear_memory:
     beq skip_stack_page
     ; if page is not 0x01 but less then 0x01 (aka 0x00), then exit to special zero page loop.
     ; otherwise the indirect pointer will be overwritten while in use.
-    bcc do_zero_page_loop
+    bcc clear_zero_page
       ;,; ldy #$00
-      InitByteLoop:
+      clear_page_loop:
         cpx $0101
         bne not_random
-          jsr rng_cc65_step_byte
+          sty temp_y
+          jsr prng_galois32o
+          ldy temp_y
         not_random:
         sta (clear_ram_ptr),y       ;otherwise, initialize byte with current low byte in Y
         iny
-      bne InitByteLoop
+      bne clear_page_loop
     skip_stack_page:
     dex               ;go onto the next page
-  bpl InitPageLoop
-  do_zero_page_loop:
-    cpx $0101
+  bpl clear_memory_loop
+clear_zero_page:
+  ;,; ldx #$00
+  clear_zero_page_loop:
+    ldy $0101
     bne not_zp_random
-      jsr rng_cc65_step_byte
+      jsr prng_galois32o
     not_zp_random:
-    sta 0,y
-    iny
-  bne do_zero_page_loop
+    sta 0, x
+    inx
+  bne clear_zero_page_loop
 
   ; if special clearing operations low nibble = $01 then clear stack page.
   ; to make the comparision in the ram code simpler change 0x01 to 0x00

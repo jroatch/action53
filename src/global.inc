@@ -91,9 +91,9 @@ DETECT_1P_MOUSE = $01
 ; quadpcm.s methods
 .global quadpcm_test
 
-; rng
-.global rng_cc65_step_byte
-.global rng_seed
+; pseudo-random number generator
+.global prng_galois32o
+.global prng_seed
 
 ; Directories
 DIRECTORY_HEADER = $8000
