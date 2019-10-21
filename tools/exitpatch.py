@@ -12,14 +12,13 @@ conflicts, it must write the number of the last bank ($FF) over a ROM
 byte with the same value.
 
 There are two ways to do this.  The 10-byte patch can be placed at
-$BFF0 or $FFF0, as by the time the JMP operand is fetched, the mapper
+$BFF1 or $FFF1, as by the time the JMP operand is fetched, the mapper
 will have finished switching to the bank with the menu.
 
-fff0:
+fff1:
     sei
     ldx #$FF
-    nop
-    stx fff0+2
+    stx fff1+2
     jmp ($FFFC)
 
 The 20-byte patch can be placed anywhere because it copies itself to
@@ -61,21 +60,20 @@ mapper 28.  It differs from BNROM in the following relevant ways:
 
 The Action 53 menu launches games with 32K PRG ROM and no more than
 one CHR ROM bank with the current register set to outer bank.
-Thus we can exit-patch these with fff0 or anywhere.
+Thus we can exit-patch these with fff1 or anywhere.
 
 If the exit code is running in a game's last bank, it can change the
 outer bank to the overall last bank and keep going.  This is true of
 32K games (CNROM), fixed-$C000 games (UNROM), and those games using
 32K bank mode (AOROM/BNROM) whose init code is in the last bank.
-This patch at $FFEB does this:
+This patch at $FFEC does this:
 
-ffeb:
+ffec:
     sei
     ldy #$81
     sty $5000
     ldx #$FF
-    nop
-    stx ffeb+2
+    stx ffec+2
     jmp ($FFFC)
 
 Otherwise, the patch has to set the game size to 32K first so that
@@ -123,17 +121,17 @@ exitmethod=none
 """
 from firstfit import slices_union, slices_find, slices_remove
 
-fff0_patch = (
-    bytes.fromhex("78A2FFEA8E02006CFCFF"),
-    (5,)
+fff1_patch = (
+    bytes.fromhex("78A2FF8E02006CFCFF"),
+    (4,)
 )
 anywhere_patch = (
     bytes.fromhex("78A205BD0E0095F0CA10F84CF0008E13006CFCFF"),
     (4, 15)
 )
-ffeb_patch = (
-    bytes.fromhex("78A0818C0050A2FFEA8E00806CFCFF"),
-    ()
+ffec_patch = (
+    bytes.fromhex("78A0818C0050A2FF8E07006CFCFF"),
+    (9,)
 )
 a53_anywhere_patch = (
     bytes.fromhex(
@@ -251,21 +249,21 @@ unrom180 -- if True, patch $BFFC and $FFFC of all banks 0 through
 
     patchmethods = {
         'nrom': [
-            (0xFFF0, fff0_patch),
-            (0xBFF0, fff0_patch),
+            (0xFFF1, fff1_patch),
+            (0xBFF1, fff1_patch),
             ((0x8000, 0xFFFA), anywhere_patch),
         ],
         'autosubmulti': [
-            (0xFFF0, fff0_patch),
+            (0xFFF1, fff1_patch),
             ((0xC000, 0xFFFA), anywhere_patch),
         ],
         'cnrom': [
-            (0xFFEB, ffeb_patch),
-            (0xBFEB, ffeb_patch),
+            (0xFFEC, ffec_patch),
+            (0xBFEC, ffec_patch),
             ((0x8000, 0xFFFA), a53_anywhere_patch),
         ],
         'unrom': [
-            (0xFFEB, ffeb_patch),
+            (0xFFEC, ffec_patch),
             ((0xC000, 0xFFFA), a53_anywhere_patch),
         ],
         'aorom': [
@@ -289,10 +287,10 @@ method -- the patch method, defaulting to the most common one for the
 
 Method can be any of the following strings:
 
-'nrom' -- fff0 or anywhere in entrybank
-'autosubmulti' - fff0 or anywhere in the second half of entrybank
-'cnrom' -- ffeb or a53_anywhere in entrybank
-'unrom' -- ffeb or a53_anywhere in the second half of entrybank
+'nrom' -- fff1 or anywhere in entrybank
+'autosubmulti' - fff1 or anywhere in the second half of entrybank
+'cnrom' -- ffec or a53_anywhere in entrybank
+'unrom' -- ffec or a53_anywhere in the second half of entrybank
 'aorom' -- a53_anywhere in entrybank
 'unrom180' -- Put a53_anywhere in the bottom half of the first bank,
     and point the reset vectors in both halves of banks 0 through

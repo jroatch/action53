@@ -788,8 +788,8 @@ indices into prgbanks and chrbanks respectively
     return (prgbanks, chrbanks, prg_starts, chr_starts, chr_lengths)
 
 blank_bank = b''.join((
-    b'\xff'*(32768 - 16),
-    bytes.fromhex("78A2FFEA8EF2FF6CFCFFF0FFF0FFF0FF")
+    b'\xff'*(32768 - 15),
+    bytes.fromhex("78A2FF8EF3FF6CFCFFF0FFF0FFF0FF")
 ))
 assert len(blank_bank) == 32768
 
@@ -1080,7 +1080,7 @@ reset vector with the original one.
     return romdir
 
 def ffd_prg_factory():
-    return (bytearray(blank_bank), [(0x8000, 0xFFF0)])
+    return (bytearray(blank_bank), [(0x8000, 0xFFF1)])
 
 def pad_to_pow2m1(prgbanks):
     """Add blank PRG banks until reaching one less than a power of two."""
