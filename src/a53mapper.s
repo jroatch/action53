@@ -89,7 +89,7 @@ temp_y = $02
   ;,;lda start_mappercfg
   and #$0C
   eor #$08  ; 0: mapper 180; nonzero: mapper 0, 2, 3, 7, 34
-  bne :+
+  beq :+
     lda #$0F
   :
   pha
