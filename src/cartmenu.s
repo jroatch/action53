@@ -562,7 +562,7 @@ right_page:
   lda #>select_tiles_chr
   ldy #<select_tiles_chr
   ldx #512/64
-  jsr donut_block_ayx
+  jsr donut_bulk_load_ayx
 
   ; Copy the tiles used for sprites 0 and 1 and top tabborders
   ; to the second pattern table tiles $00 through $0F
@@ -571,7 +571,7 @@ right_page:
   lda #$00
   sta PPUADDR
   ldx #256/64
-  jsr donut_block_x
+  jsr donut_bulk_load_x
 
   ; Steps to get the menu up:
   ; 1. Load the attribute table
@@ -1472,11 +1472,26 @@ ibflen = $04
   ; 1st block is grayscale background, 2nd is sprite overlay
   ldx #0
   jsr donut_decompress_block
-  ;,; ldx #64
+
+  ; I think I may have messed up when I took out the
+  ; auto address increment in donut_decompress_block.
+  ; I end up having to manualy add them twice here.
+  tya
+  clc
+  adc donut_stream_ptr+0
+  sta donut_stream_ptr+0
+  bcc :+
+  inc donut_stream_ptr+1
+:
+  tya
+  clc
+  adc desc_data_ptr
+  sta desc_data_ptr
+  bcc :+
+  inc desc_data_ptr+1
+:
   jsr donut_decompress_block
-  sec
-  lda donut_stream_ptr+0
-  sbc #<interbank_fetch_buf
+  tya
   clc
   adc desc_data_ptr
   sta desc_data_ptr

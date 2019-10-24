@@ -60,10 +60,10 @@ start_mappercfg  = $02  ; Mapper configuration byte for this activity
 .global unpb53_some, unpb53_block_ay, unpb53_block, interbank_fetch
 
 ; donut.s methods
-.global donut_decompress_block, donut_block_ayx, donut_block_x
+.global donut_decompress_block, donut_bulk_load_ayx, donut_bulk_load_x
 ; donut.s fields
 .global donut_block_buffer
-.globalzp donut_stream_ptr, donut_block_count
+.globalzp donut_stream_ptr
 
 ; undte.s constants
 DTE_OUTPUT_LEN = 64

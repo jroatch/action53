@@ -27,7 +27,7 @@ ciDst: .res 2  ; Moved from unpb53.s as it's only used here.
   bne :+
     inc donut_stream_ptr+1
   :
-  jsr donut_block_x
+  jsr donut_bulk_load_x
 
   ; Unpack nametable
   lda #$20
@@ -35,7 +35,7 @@ ciDst: .res 2  ; Moved from unpb53.s as it's only used here.
   lda #$00
   sta PPUADDR
   ldx #1024/64
-  jsr donut_block_x
+  jsr donut_bulk_load_x
 
   ; fill in the palette
   ldx #$3F

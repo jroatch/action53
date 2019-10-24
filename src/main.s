@@ -513,9 +513,10 @@ chrdir_entry = load_titledir_chr_rom_chrdir_entry
   lda #$ff
   sta $8000   ; forget about the whole bus conflict thing for now
   cli
-  sty donut_block_count  ; a safe temp var to store the returned bytes read
+  tya
+  pha                    ; stash the bytes read by donut_decompress_block
   jsr pently_update_lag
-  lda donut_block_count
+  pla
   clc
 rts
 .endproc
