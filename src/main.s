@@ -117,17 +117,19 @@ copied_end:
   tsx
   lda $0103, x
   and #$10
-  beq ack_apu_frame_counter
-    tya
-    pha
-  jmp coredump
-  ack_apu_frame_counter:
+  bne irq_was_brk
   pla
   tax
   pla
   bit $4015
   inc nmis
 rti
+irq_was_brk:
+  tya
+  pha
+jmp coredump
+
+
 .endproc
 
 ;
@@ -335,9 +337,26 @@ titleptr = $00
     jsr pently_update_lag
     jmp :-
   :
+  ; switch back to vblank timing
+  sei
+  bit PPUSTATUS
+  lda #VBLANK_NMI
+  sta PPUCTRL
 
-  lda #$00
-  tay  ;,; ldy #$00
+  ; sync to vblank to clear hardware palette to black without streaks
+  jsr ppu_wait_vblank
+  lda #$3f
+  sta PPUADDR
+  ldy #$e0
+  sty PPUADDR
+  lda #$0f
+  :
+    sta PPUDATA
+    iny
+  bne :-
+
+  tya  ;,; lda #$00
+  ;,; ldy #$00
   ldx #$20
   jsr ppu_clear_nt
   ldx #$2c
