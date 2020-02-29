@@ -287,20 +287,27 @@ ppuaddr_lo = horzPos
   lda #VBLANK_NMI|VRAM_DOWN
   sta PPUCTRL
   ldy #15
-@loop:
-  ; each pass takes 102 cycles (I think)
-  stx PPUADDR
+copy_loop:
+  ; each pass takes 102+2 cycles (I think)
   lda chrstarts,y
   clc
   adc ppuaddr_lo
+  bcs ppuaddr_hi_adj  ; unfortunately we do need to adjust the high byte in some cases
+  stx PPUADDR
+ppuaddr_hi_adj_return:
   sta PPUADDR
   .repeat ::lineImgBufLen/16,step
     lda lineImgBuf + step*16, y
     sta PPUDATA
   .endrep
   dey
-  bpl @loop
+  bpl copy_loop
   rts
+ppuaddr_hi_adj:
+  inx
+  stx PPUADDR
+  dex
+  bcs ppuaddr_hi_adj_return  ;,; jmp ppuaddr_hi_adj_return
 
 .pushseg
 .segment "RODATA"

@@ -89,8 +89,8 @@ title_wait_A:
   ; If time expired, blank the screen and play audio
 selnow:
   jsr pently_init  ; kill sound
-  lda #0
-  sta PPUMASK
+;  lda #0
+;  sta PPUMASK
   jmp quadpcm_test
 .endproc
 

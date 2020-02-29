@@ -891,7 +891,7 @@ screenshot_ids is a list of one index into screenshots for each title
 def neg_len_x_1_0(x):
     return -len(x[1][0])
 
-def insert_screenshots(titles, prgbanks, basepath=None):
+def insert_screenshots(titles, prgbanks, basepath=None, bank_number_offset=0):
     """Load screenshots and insert them into unused space.
 
 Return a tuple (scrdir, screenshot_ids).
@@ -918,11 +918,11 @@ scrdir[i * 3:i * 3 + 3].
 
     # Format screenshot directory
     scrdir = b''.join(bytes([
-        bank & 0xFF, addr & 0xFF, addr >> 8
+        (bank + bank_number_offset) & 0xFF, addr & 0xFF, addr >> 8
     ]) for (bank, addr) in scr_directory)
     return (scrdir, screenshot_ids)
 
-def insert_chr(chrbanks, prgbanks):
+def insert_chr(chrbanks, prgbanks, bank_number_offset=0):
     """Compress and insert the CHR banks into unused PRG ROM.
 
 chrbanks -- a list of 8192-byte BLOs
@@ -962,7 +962,7 @@ second from (Address + Midpoint).
     for (i, (data, midpoint)) in pb53banks_sorted:
         chr_directory[i] = ffd_add(prgbanks, data, from_end=True) + tuple(midpoint)
     chrdir = b''.join(bytes([
-        b & 0xFF, a & 0xFF, a >> 8, mp & 0xFF, mp >> 8
+        (b + bank_number_offset) & 0xFF, a & 0xFF, a >> 8, mp & 0xFF, mp >> 8
     ]) for (b, a, mp) in chr_directory)
     # At this point, chr_directory[] is a list of
     # (bank, address, midpoint) tuples, one for each CHR ROM bank
@@ -1095,7 +1095,7 @@ def pad_n_banks(prgbanks, n):
         prgbanks.append(ffd_prg_factory())
 
 def make_title_directory(titles, roms_by_name,
-                         prg_starts, chr_starts, chr_lengths, screenshot_ids):
+                         prg_starts, chr_starts, chr_lengths, screenshot_ids, bank_number_offset=0):
     """Make a machine-readable directory of ROM titles.
 
 On the screen it is printed thus:
@@ -1205,7 +1205,7 @@ the name block, and the description block.
             rand_page_num = 15
 
         titledir_data = [
-            prgstart, chr_starts[i], screenshot_ids[i], year,
+            (prgstart + bank_number_offset) & 0xff, chr_starts[i], screenshot_ids[i], year,
             int(players), chr_lengths[i], rand_page_num * 16 + oam_page_num, 0,
             name_offset & 0xFF, name_offset >> 8,
             0, 0,  # reserved for description data
@@ -1282,6 +1282,7 @@ def main(argv=None):
     # Convert the title lines
     print(parsed.title_lines)
     title_lines_data = convert_title_lines(parsed.title_lines)
+    title_lines_data += b'\xff'*(224-len(title_lines_data))
 
     # Load the ROMs
     start_bank = parsed.start_bank
@@ -1369,14 +1370,15 @@ def main(argv=None):
     del prgbank, all_patches, cfg_patches, exit_patches
 
     # Insert tile data for CHR ROM and screenshots
-    chrdir = insert_chr(chrbanks, prgbanks[:-1])
+    chrdir = insert_chr(chrbanks, prgbanks[:-1], 0x100-len(prgbanks))
     del chrbanks
-    (scrdir, screenshot_ids) = insert_screenshots(titles, prgbanks[:-1], cfgfilename)
+    (scrdir, screenshot_ids) = insert_screenshots(titles, prgbanks[:-1], cfgfilename, 0x100-len(prgbanks))
 
     # Create the title directory
     (titledir, name_block, desc_block, dte_replacements) \
                = make_title_directory(titles, roms_by_name,
-                                      prg_starts, chr_starts, chr_lengths, screenshot_ids)
+                                      prg_starts, chr_starts, chr_lengths, screenshot_ids,
+                                      0x100-len(prgbanks))
     pagedir_sz = sum(len(p[0]) for p in pages) + 2 * len(pages) + 1
     assert len(pagedir) == pagedir_sz
 
@@ -1397,14 +1399,14 @@ def main(argv=None):
         raise ValueError("internal error: directory size of %d bytes does not match estimate of %d"
                          % (dirs_len2, est_dirs_len))
 
-    # This is a debug canary that will cause random bugs
-    # if unused_ranges are not correct.
-    for (i, (d, unused_ranges)) in enumerate(prgbanks[:-1]):
-        for (s, e) in unused_ranges:
-            s -= 0x8000
-            e -= 0x8000
-            d[s:e] = b'\xff'*(e-s)
-            #d[s:e] = os.urandom(e-s)
+#    # This is a debug canary that will cause random bugs
+#    # if unused_ranges are not correct.
+#    for (i, (d, unused_ranges)) in enumerate(prgbanks[:-1]):
+#        for (s, e) in unused_ranges:
+#            s -= 0x8000
+#            e -= 0x8000
+#            d[s:e] = b'\xff'*(e-s)
+#            #d[s:e] = os.urandom(e-s)
 
     checksums_dir = bytearray()
     for bank in prgbanks:
@@ -1419,17 +1421,17 @@ def main(argv=None):
     checksums_dir[-3] = 0
     checksums_dir[-4] = 0
 
+    title_strings_addr = ffd_add(final_banks, title_lines_data)
     checksums_dir_addr = ffd_add(final_banks, checksums_dir)
     dte_replacements_addr = ffd_add(final_banks, dte_replacements)
+    titledir_addr = ffd_add(final_banks, titledir)
     desc_block_addr = ffd_add(final_banks, desc_block)
     name_block_addr = ffd_add(final_banks, name_block)
     #romdir_addr = ffd_add(final_banks, romdir)
-    titledir_addr = ffd_add(final_banks, titledir)
     scrdir_addr = ffd_add(final_banks, scrdir)
     chrdir_addr = ffd_add(final_banks, chrdir)
     pagedir_addr = ffd_add(final_banks, pagedir)
     title_screen_addr = ffd_add(final_banks, title_screen_sb53)
-    title_strings_addr = ffd_add(final_banks, title_lines_data)
 
     if trace:
         print("Remaining space in last bank:",
@@ -1481,14 +1483,32 @@ def main(argv=None):
         print("descriptions in bank %d byte $%04x" % desc_block_addr)
     final_bank[0x0000:0x0000 + len(keyblock)] = keyblock
 
-    # This is a debug canary that will cause random bugs
-    # if unused_ranges are not correct.
-    for (i, (d, unused_ranges)) in enumerate(final_banks):
-        for (s, e) in unused_ranges:
-            s -= 0x8000
-            e -= 0x8000
-            d[s:e] = b'\xff'*(e-s)
-            #d[s:e] = os.urandom(e-s)
+#    # This is a debug canary that will cause random bugs
+#    # if unused_ranges are not correct.
+#    for (i, (d, unused_ranges)) in enumerate(final_banks):
+#        for (s, e) in unused_ranges:
+#            s -= 0x8000
+#            e -= 0x8000
+#            d[s:e] = b'\xff'*(e-s)
+#            #d[s:e] = os.urandom(e-s)
+
+    # At the end of the database, place the former "$bff0" patch.
+    # just in case some old reset patch relied on it.
+    # .org $bff0
+    #  sei
+    #ldxinstr:
+    #  ldx #$FF
+    #  nop
+    #  stx ldxinstr+1
+    #  jmp ($FFFC)
+    final_bank[0x3ff0:0x3ffa] = b"\x78\xa2\xff\xea\x8e\xf2\xbf\x6c\xfc\xff"
+    final_bank[0x3ffa:0x3ffe] = final_bank[0x7ffa:0x7ffe]
+
+    # a hack to move up the checksum fix up for patching the gift message text
+    if final_bank[0x0080:0x0100] == b'\xff'*0x80:
+        db_checksum = crc16xmodem.crc16xmodem(final_bank[0x0000:0x00fe])
+        final_bank[0x00fe] = db_checksum >> 8
+        final_bank[0x00ff] = db_checksum & 0xFF
 
     db_checksum = crc16xmodem.crc16xmodem(final_bank[0x0000:0x3ffe])
     print("db_checksum $%04x" % db_checksum)

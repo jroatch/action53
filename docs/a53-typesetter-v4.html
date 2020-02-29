@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8"/>
+<title>Action 53 Typesetter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+canvas, textarea {
+	margin: 0;
+	border: 1px solid #000;
+	vertical-align: top;
+}
+canvas {
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+}
+</style>
+<script type="text/javascript">
+CRC16_XMODEM_TABLE = [
+0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
+0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
+0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
+0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c, 0xf3ff, 0xe3de,
+0x2462, 0x3443, 0x0420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485,
+0xa56a, 0xb54b, 0x8528, 0x9509, 0xe5ee, 0xf5cf, 0xc5ac, 0xd58d,
+0x3653, 0x2672, 0x1611, 0x0630, 0x76d7, 0x66f6, 0x5695, 0x46b4,
+0xb75b, 0xa77a, 0x9719, 0x8738, 0xf7df, 0xe7fe, 0xd79d, 0xc7bc,
+0x48c4, 0x58e5, 0x6886, 0x78a7, 0x0840, 0x1861, 0x2802, 0x3823,
+0xc9cc, 0xd9ed, 0xe98e, 0xf9af, 0x8948, 0x9969, 0xa90a, 0xb92b,
+0x5af5, 0x4ad4, 0x7ab7, 0x6a96, 0x1a71, 0x0a50, 0x3a33, 0x2a12,
+0xdbfd, 0xcbdc, 0xfbbf, 0xeb9e, 0x9b79, 0x8b58, 0xbb3b, 0xab1a,
+0x6ca6, 0x7c87, 0x4ce4, 0x5cc5, 0x2c22, 0x3c03, 0x0c60, 0x1c41,
+0xedae, 0xfd8f, 0xcdec, 0xddcd, 0xad2a, 0xbd0b, 0x8d68, 0x9d49,
+0x7e97, 0x6eb6, 0x5ed5, 0x4ef4, 0x3e13, 0x2e32, 0x1e51, 0x0e70,
+0xff9f, 0xefbe, 0xdfdd, 0xcffc, 0xbf1b, 0xaf3a, 0x9f59, 0x8f78,
+0x9188, 0x81a9, 0xb1ca, 0xa1eb, 0xd10c, 0xc12d, 0xf14e, 0xe16f,
+0x1080, 0x00a1, 0x30c2, 0x20e3, 0x5004, 0x4025, 0x7046, 0x6067,
+0x83b9, 0x9398, 0xa3fb, 0xb3da, 0xc33d, 0xd31c, 0xe37f, 0xf35e,
+0x02b1, 0x1290, 0x22f3, 0x32d2, 0x4235, 0x5214, 0x6277, 0x7256,
+0xb5ea, 0xa5cb, 0x95a8, 0x8589, 0xf56e, 0xe54f, 0xd52c, 0xc50d,
+0x34e2, 0x24c3, 0x14a0, 0x0481, 0x7466, 0x6447, 0x5424, 0x4405,
+0xa7db, 0xb7fa, 0x8799, 0x97b8, 0xe75f, 0xf77e, 0xc71d, 0xd73c,
+0x26d3, 0x36f2, 0x0691, 0x16b0, 0x6657, 0x7676, 0x4615, 0x5634,
+0xd94c, 0xc96d, 0xf90e, 0xe92f, 0x99c8, 0x89e9, 0xb98a, 0xa9ab,
+0x5844, 0x4865, 0x7806, 0x6827, 0x18c0, 0x08e1, 0x3882, 0x28a3,
+0xcb7d, 0xdb5c, 0xeb3f, 0xfb1e, 0x8bf9, 0x9bd8, 0xabbb, 0xbb9a,
+0x4a75, 0x5a54, 0x6a37, 0x7a16, 0x0af1, 0x1ad0, 0x2ab3, 0x3a92,
+0xfd2e, 0xed0f, 0xdd6c, 0xcd4d, 0xbdaa, 0xad8b, 0x9de8, 0x8dc9,
+0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0x0cc1,
+0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
+0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
+]
+function crc16xmodem(data) {
+	crc = 0;
+	data.forEach(function(byte){
+		crc = ((crc<<8)&0xff00) ^ CRC16_XMODEM_TABLE[((crc>>8)&0xff)^byte]
+	});
+	return crc & 0xffff;
+}
+window.addEventListener("load", function () {
+	var textbox = document.getElementById('input_text');
+	var canvas = document.getElementById('c');
+	var ctx = canvas.getContext('2d');
+	canvas.style.width = "288px";
+	canvas.style.height = "352px";
+	var font = new Image();
+	font.src = "data:image/png;base64," +
+"iVBORw0KGgoAAAANSUhEUgAAAIAAAABAAQMAAADoGO08AAAABlBMVEX///8AAABVwtN+AAAAAXRS" +
+"TlMAQObYZgAAAeBJREFUOE/NUaFuVVEQHFl5JHJl5ZNXrqioqDiCD1iJQBxZQciIhqwc2VSQF9RN" +
+"VcVTqKcIoiFVT58/4MirGsTtIwVKsEzW7GR2Z7MD/FewX7rJHZim6YM98WfuI95enH5vtlI3LYoO" +
+"h8f3s3kBgE/7fYwv3z4/2rwsAHDjTh4Oj++srYqzSxvt9cXpZE87JgCvpmkaeBncVntwGs0AFIDb" +
+"pT1s6T4fCdStOWhtwYABxBIxgzYbgACAWl3gaukAgX73Bu4AQQIA/A4wAmv9jrCITYsRsbZQqFSy" +
+"SGQZFGQl1LuFgEAUyKKMIlMDiGKQUUVyFSBGAGEjSoRHkAW054bEi5hstLEsLenJq2w4q5lJZtLF" +
+"+6+JmzqYY3Chb3k/J26XZJLXSe/czYnbfDayu058zNHGwsuk53KVDf6vMzDaaEvmVebS2Q3IzLTM" +
+"Xa0npFUgM8Myd2aFbgmMHMWy7syCYQCYSst6Xo1rumzZrNl52sJiAHDy07CXjuXPOwiiYAPS1xw9" +
+"erTw1gHxoQdQJKlL9C1nCWiihkv0/UpIEr09U/RozYvo8llxNIu//wPA8Wsb7ivQW29dSmk4bQtI" +
+"pEuzVJwGQGK4NMcaP9AbiyuqjKuChd1aVPk4Ek9WxIZ74AenJA613jbHEAAAAABJRU5ErkJggg==";
+	var charmap = {
+		'\u00A9': 0x13,
+		'\u0141': 0x14,
+		'\u0142': 0x15,
+		'\u017C': 0x16,
+		'\u0119': 0x17,
+		'\u24B6': 0x18,
+		'\u24B7': 0x19,
+		'\u271C': 0x1a,
+		'\ud83d\udc26': 0x1b,  //'\u{1F426}': 0x1b,
+		'\u2191': 0x1c,
+		'\u2193': 0x1d,
+		'\u2190': 0x1e,
+		'\u2192': 0x1f,
+		'\u2423': 0x7f,
+	};
+	for (var i = 0; i < 0x7f; i++) {
+		charmap[String.fromCharCode(i)] = i;
+	}
+	var font_widths = [
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 8, 6, 4, 5, 5, 8, 8, 8, 8, 6, 6, 6, 6,
+		3, 2, 4, 6, 5, 5, 6, 2, 4, 4, 6, 6, 2, 5, 2, 5,
+		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 2, 5, 5, 5, 5,
+		8, 6, 6, 6, 6, 6, 6, 6, 6, 2, 3, 6, 6, 7, 6, 6,
+		6, 6, 6, 6, 6, 6, 6, 7, 6, 6, 6, 4, 5, 4, 6, 5,
+		3, 5, 5, 5, 5, 5, 4, 5, 5, 2, 3, 5, 3, 6, 5, 5,
+		5, 5, 4, 5, 4, 5, 5, 6, 5, 5, 5, 5, 2, 5, 5, 1
+	];
+	function render() {
+		var text = textbox.value;
+		var text_length = text.length;
+		var c;
+		var char;
+		var x = 0;
+		var y = 0;
+		ctx.fillStyle = "#bbb";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.save();
+		ctx.translate(8, 8);
+		ctx.fillStyle = "#000";
+		ctx.beginPath();
+		ctx.moveTo(128, -8);
+		ctx.arcTo(128, 168, 120, 168, 8);
+		ctx.lineTo(136, 168);
+		ctx.lineTo(136, -8);
+		ctx.closePath();
+		ctx.fill();
+		ctx.fillStyle = "#ff0000";
+		for (var i = 0; i < text_length; i++) {
+			c = text.charCodeAt(i);
+			if ((0xd800 <= c) && (c < 0xe000) && (i+1 < text_length)) {
+				char = text[i] + text[i+1];
+				i++;
+			} else {
+				char = text[i];
+			}
+			c = charmap[char];
+			if (c != null) {
+				if (x > 128) {
+					ctx.fillRect(128, y, 4, 8);
+				} else if (y < 160) {
+					ctx.drawImage(font, (c%16)*8, ((c/16)|0)*8, 8, 8, x, y, 8, 8);
+				}
+				x += font_widths[c];
+				if (c == 0x0a) {
+					y += 8;
+					x = 0;
+				}
+			}
+			if (y*128 + x > 160*128) {
+				ctx.fillRect(-8, 160, 144, 8);
+			}
+		}
+		ctx.restore();
+	};
+	var gift_msg = document.getElementById('gift_text');
+	var gift_output = document.getElementById('gift_text_output');
+	var title_screen_canvas = document.getElementById('c2');
+	var ctx2 = title_screen_canvas.getContext('2d');
+	title_screen_canvas.style.width = "512px";
+	title_screen_canvas.style.height = "480px";
+	var title_screen_bg = new Image();
+	title_screen_bg.src = "data:image/png;base64," +
+"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";
+	title_screen_attr = [
+[0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
+[0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1],
+[0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+[1,0,0,0,0,0,0,0,0,2,2,2,2,1,0,0],
+[1,1,0,0,0,2,1,1,1,1,1,1,1,1,0,0],
+[1,1,0,0,0,2,1,1,1,1,1,1,1,0,0,0],
+[1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
+[1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+[1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
+[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+[1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0]
+	]
+	title_screen_pal = [
+		["#fefeff","#002d69","#0f63b3","#bcdfff"],
+		["#fefeff","#c03470","#ff83c0","#f8d5b4"],
+		["#fefeff","#002d69","#c03470","#5db3ff"],
+		["#fefeff","#002d69","#9f4a00","#ef9a49"]
+	];
+	action53_fixed_bytes = [
+0xa5,0x41,0x35,0x33,0x1c,0xc0,0x00,0x00,0xaa,0xac,0x05,0xac,0x00,0x83,0xc7,0xad,
+0x62,0xa7,0x80,0x86,0xff,0x00,0xf1,0xad,0x20,0x80,0x00,0x82,0x00,0x81,0x00,0x00,
+0x5a,0x34,0x32,0x30,0x32,0x30,0x20,0x44,0x61,0x6d,0x69,0x61,0x6e,0x20,0x59,0x65,
+0x72,0x72,0x69,0x63,0x6b,0x20,0x61,0x6e,0x64,0x00,0x5a,0xa0,0x43,0x6f,0x6e,0x74,
+0x72,0x69,0x62,0x75,0x74,0x6f,0x72,0x73,0x00
+]
+	var message_patch_buffer = new Uint8Array(256-2);
+	for (var i = 0; i < action53_fixed_bytes.length; i++) {
+		message_patch_buffer[i] = action53_fixed_bytes[i];
+	}
+	patch_ines_offset = 0x001f8010 + action53_fixed_bytes.length;
+	for (var i = action53_fixed_bytes.length; i < message_patch_buffer.length; i++) {
+		message_patch_buffer[i] = 0xff;
+	}
+	var attr_buffers = [];
+	for (var i = 0; i < title_screen_pal.length; i++) {
+		var attr_buffer = document.createElement('canvas');
+		attr_buffer.width = 256;
+		attr_buffer.height = 240;
+		var attrCtx = attr_buffer.getContext('2d');
+		for (var y = 0; y < 15; y++) {
+			for (var x = 0; x < 16; x++) {
+				attrCtx.fillStyle = title_screen_pal[title_screen_attr[y][x]][i];
+				attrCtx.fillRect(x*16, y*16, 16, 16);
+			}
+		}
+		attr_buffers.push(attr_buffer);
+	}
+	var scratch_buffer = document.createElement('canvas');
+	function draw_text_lines(destCtx, text, destX, destY) {
+		destCtx = destCtx || null;
+		text = text || "";
+		destX = destX || 0;
+		destY = destY || 0;
+		var text_length = text.length;
+		var c;
+		var char;
+		var text_box_width = 0;
+		var text_box_height = 0;
+		var x = 0;
+		var y = 0;
+		if (destCtx !== null) {
+			destCtx.save();
+		}
+		for (var i = 0; i < text_length; i++) {
+			c = text.charCodeAt(i);
+			if ((0xd800 <= c) && (c < 0xe000) && (i+1 < text_length)) {
+				char = text[i] + text[i+1];
+				i++;
+			} else {
+				char = text[i];
+			}
+			c = charmap[char];
+			if (c != null) {
+				if (destCtx !== null) {
+					destCtx.drawImage(font, (c%16)*8, ((c/16)|0)*8, 8, 8, x + destX, y + destY, 8, 8);
+				}
+				x += font_widths[c];
+				if (text_box_width < x) {
+					text_box_width = x;
+				}
+				if (text_box_height < (y+8)) {
+					text_box_height = (y+8);
+				}
+				if (c == 0x0a) {
+					y += 8;
+					x = 0;
+				}
+			}
+		}
+		if (destCtx !== null) {
+			destCtx.restore();
+		}
+		return [destX, destY, text_box_width, text_box_height]
+	}
+	function get_text_lines_bounding_box(text, destX, destY) {
+		text = text || "";
+		destX = destX || 0;
+		destY = destY || 0;
+		return draw_text_lines(null, text, destX, destY);
+	}
+	function round_bounding_box(box) {
+		var x = box[0];
+		var y = box[1];
+		var x2 = x + box[2];
+		var y2 = y + box[3];
+		x = Math.floor(x / 8) * 8;
+		y = Math.floor(y / 8) * 8;
+		x2 = Math.ceil(x2 / 8) * 8;
+		y2 = Math.ceil(y2/ 8) * 8;
+		var width = x2 - x;
+		var height = y2 - y;
+		return [x, y, width, height];
+	}
+	function render_title_screen_with_commands() {
+		var gift_lines = gift_msg.value.trim().split('\n');
+		var b_box;
+		var line = "";
+		var x = 0;
+		var y = 0;
+		var text_color = 1;
+		var bg_color = 0;
+		ctx2.save();
+		ctx2.globalCompositeOperation = "source-over";
+		ctx2.drawImage(title_screen_bg, 0, 0);
+		for (var i = 0; i < gift_lines.length; i++) {
+			if (gift_lines[i] == "") {
+				continue;
+			}
+			if (gift_lines[i][0] == "#") {
+				text_color = 1;
+				bg_color = 0;
+				var style_cmd = gift_lines[i].split(" ");
+				if (style_cmd.length >= 2) {
+					x = +style_cmd[1];
+				}
+				if (style_cmd.length >= 3) {
+					y = +style_cmd[2];
+					y = Math.floor(y / 8) * 8;
+				}
+				if (style_cmd.length >= 4) {
+					text_color = +style_cmd[3];
+				}
+				if (style_cmd.length >= 5) {
+					bg_color = +style_cmd[4];
+				}
+				continue;
+			}
+			line = gift_lines[i];
+			b_box = get_text_lines_bounding_box(line, x, y);
+			b_box = round_bounding_box(b_box);
+			ctx2.globalCompositeOperation = "source-over";
+			ctx2.clearRect(b_box[0], b_box[1], b_box[2], b_box[3]);
+			draw_text_lines(ctx2, line, x, y);
+			ctx2.globalCompositeOperation = "source-atop";
+			ctx2.drawImage(attr_buffers[text_color], b_box[0], b_box[1], b_box[2], b_box[3], b_box[0], b_box[1], b_box[2], b_box[3]);
+			ctx2.globalCompositeOperation = "destination-over";
+			ctx2.drawImage(attr_buffers[bg_color], 0, 0);
+			y += 8;
+		}
+		ctx2.restore();
+	};
+	function render_title_screen() {
+		var gift_lines = gift_msg.value.trim().split('\n');
+		var b_box;
+		var line = "";
+		var x = 0;
+		var y = 184;
+		var text_color = 1;
+		var bg_color = 0;
+		var cfg_text_output = "# generated from A53 typesetter v4\n";
+		ctx2.save();
+		ctx2.globalCompositeOperation = "source-over";
+		ctx2.drawImage(title_screen_bg, 0, 0);
+		for (var i = 0; i < gift_lines.length; i++) {
+			if (gift_lines[i] == "") {
+				continue;
+			}
+			line = gift_lines[i].trim();
+			b_box = get_text_lines_bounding_box(line, x, y);
+			x = Math.floor((256 - b_box[2])/2);
+			b_box[0] = x;
+			b_box = round_bounding_box(b_box);
+			ctx2.globalCompositeOperation = "source-over";
+			ctx2.clearRect(b_box[0], b_box[1], b_box[2], b_box[3]);
+			draw_text_lines(ctx2, line, x, y);
+			ctx2.globalCompositeOperation = "source-atop";
+			ctx2.drawImage(attr_buffers[text_color], b_box[0], b_box[1], b_box[2], b_box[3], b_box[0], b_box[1], b_box[2], b_box[3]);
+			ctx2.globalCompositeOperation = "destination-over";
+			ctx2.drawImage(attr_buffers[bg_color], 0, 0);
+			cfg_text_output += "text=" + line + "\n" + "at=" + x + "," + y + "\ncolor=1,0\n\n";
+			y += 8;
+		}
+		ctx2.restore();
+		gift_output.value = cfg_text_output;
+	};
+	textbox.addEventListener("input", render, false);
+	font.addEventListener("load", render, false);
+	gift_msg.addEventListener("input", render_title_screen, false);
+	title_screen_bg.addEventListener("load", render_title_screen, false);
+}, false);
+</script>
+</head>
+<body>
+<div>
+<textarea id="input_text" rows="20" cols="40">Game Title
+2020 Name of Author
+Number of players
+
+20 lines max. First 4 for info.
+lines wider then 128 pixels will cut off.
+
+Available Characters:
+©ŁłżęⒶⒷ✜🐦↑↓←→
+ !"#$%&'()*+,-./0123456789:;<
+=>?@ABCDEFGHIJKLMNOPQR
+STUVWXYZ[\]^_`abcdefghijkl
+mnopqrstuvwxyz{|}~␣
+
+'␣' is a single pixel space
+
+✜ Move
+Ⓑ Run
+Ⓐ Jump
+Start: Inventory Menu</textarea><canvas id="c" width="144" height="176">&lt;canvas&gt; required</canvas>
+</div>
+<hr/>
+<div style="float:left;">
+<textarea id="gift_text" rows="4" cols="40">
+Contributor Copy
+Thanks for your hard work!
+</textarea><br/><br/>
+<textarea id="gift_text_output" rows="20" cols="40"></textarea>
+</div><canvas id="c2" width="256" height="240">&lt;canvas&gt; required</canvas>
+</body>
+</html>
